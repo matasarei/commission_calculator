@@ -1,29 +1,48 @@
 <?php
 
 use GuzzleHttp\Client as HttpClient;
+use GuzzleHttp\Psr7\Response as HttpResponse;
 use Matasar\CommissionCalculator\BinProviders\BinListNetProvider;
 use PHPUnit\Framework\TestCase;
 
 final class BinListNextProviderTest extends TestCase
 {
-    private $provider;
-
     public function testGetCountryByBin()
     {
-        $country = $this->provider->getCountryIsoByBin(45717360);
+        $response = new HttpResponse(200, [], json_encode([
+            'country' => [
+                'alpha2' => 'DK'
+            ]
+        ]));
 
-        $this->assertEquals('DK', $country);
+        $httpClient = $this->getHttpClientMock($response);
+
+        $provider = new BinListNetProvider($httpClient);
+        $data = $provider->getBinData(45717360);
+
+        $this->assertEquals('DK', $data->getCountryCode());
     }
 
-    public function testBinNotFound()
+    public function testBadResponse()
     {
-        $this->expectException('GuzzleHttp\Exception\ClientException');
+        $provider = new BinListNetProvider($this->getHttpClientMock(new HttpResponse(400)));
 
-        $this->provider->getCountryIsoByBin(0);
+        $this->expectException('Matasar\CommissionCalculator\Exceptions\ProviderException');
+
+        $provider->getBinData(0);
     }
 
-    protected function setUp(): void
+    /**
+     * @param HttpResponse $response
+     *
+     * @return HttpClient|\PHPUnit\Framework\MockObject\MockObject
+     */
+    protected function getHttpClientMock(HttpResponse $response)
     {
-        $this->provider = new BinListNetProvider(new HttpClient());
+        $httpClient = $this->createMock(HttpClient::class);
+        $httpClient->method('request')
+            ->willReturn($response);
+
+        return $httpClient;
     }
 }

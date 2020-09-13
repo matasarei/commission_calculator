@@ -7,21 +7,25 @@ use PHPUnit\Framework\TestCase;
 
 final class ExchangeRatesApiProviderTest extends TestCase
 {
+    private const USD_RATE = 1.1773;
+
     private $provider;
 
     public function testGetExchangeRate()
     {
-        $this->assertNotNull($this->provider->getExchangeRate('USD'));
+        $exchangeRate = $this->provider->getExchangeRate('USD');
+
+        $this->assertEquals( self::USD_RATE, $exchangeRate->getRate());
     }
 
     public function testWrongCurrencyProvided()
     {
-        $this->expectException('InvalidArgumentException');
+        $this->expectException('Matasar\CommissionCalculator\Exceptions\ProviderException');
 
         $this->provider->getExchangeRate('ABC');
     }
 
-    public function testUnexpectedServerResponse()
+    public function testBadResponse()
     {
         $fakeHttpClient = $this->createMock(HttpClient::class);
         $fakeHttpClient->method('request')
@@ -29,13 +33,23 @@ final class ExchangeRatesApiProviderTest extends TestCase
 
         $provider = new ExchangeRatesApiProvider($fakeHttpClient);
 
-        $this->expectException('UnexpectedValueException');
+        $this->expectException('Matasar\CommissionCalculator\Exceptions\ProviderException');
 
         $provider->getExchangeRate('USD');
     }
 
     protected function setUp(): void
     {
-        $this->provider = new ExchangeRatesApiProvider(new HttpClient());
+        $response = new HttpResponse(200, [], json_encode([
+            'rates' => [
+                'USD' => self::USD_RATE
+            ]
+        ]));
+
+        $httpClient = $this->createMock(HttpClient::class);
+        $httpClient->method('request')
+            ->willReturn($response);
+
+        $this->provider = new ExchangeRatesApiProvider($httpClient);
     }
 }

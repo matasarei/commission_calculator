@@ -2,7 +2,9 @@
 
 namespace Matasar\CommissionCalculator\Interfaces;
 
+use Matasar\CommissionCalculator\Entities\BinData;
+
 interface BinProviderInterface
 {
-    public function getCountryIsoByBin(int $bin): string;
+    public function getBinData(int $bin): BinData;
 }

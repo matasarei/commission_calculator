@@ -2,7 +2,9 @@
 
 namespace Matasar\CommissionCalculator\Interfaces;
 
+use Matasar\CommissionCalculator\Entities\CurrencyExchangeRate;
+
 interface CurrencyRatesProviderInterface
 {
-    public function getExchangeRate($currencyIso);
+    public function getExchangeRate($currencyIso): CurrencyExchangeRate;
 }

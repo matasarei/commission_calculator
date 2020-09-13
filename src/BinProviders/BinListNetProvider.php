@@ -4,8 +4,9 @@ namespace Matasar\CommissionCalculator\BinProviders;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
+use Matasar\CommissionCalculator\Entities\BinData;
+use Matasar\CommissionCalculator\Exceptions\ProviderException;
 use Matasar\CommissionCalculator\Interfaces\BinProviderInterface;
-use Psr\Http\Message\ResponseInterface;
 
 class BinListNetProvider implements BinProviderInterface
 {
@@ -22,34 +23,25 @@ class BinListNetProvider implements BinProviderInterface
     /**
      * @param int $bin
      *
-     * @return string Country ISO / alpha2 code
+     * @return BinData
      *
-     * @throws GuzzleException
-     * @throws \UnexpectedValueException
+     * @throws ProviderException
      */
-    public function getCountryIsoByBin(int $bin): string
+    public function getBinData(int $bin): BinData
     {
-        $response = $this->httpRequest($bin);
+        try {
+            $response = $this->httpClient->request('GET', 'https://lookup.binlist.net/' . $bin);
+        } catch (GuzzleException $ex) {
+            throw new ProviderException($ex->getMessage(), 0, $ex);
+        }
 
         $data = json_decode($response->getBody()->getContents(), true);
         $country = $data['country']['alpha2'] ?? null;
 
         if (null === $country) {
-            throw new \UnexpectedValueException('Bad response, fail to get country iso.');
+            throw new ProviderException('Bad response, fail to get country iso.');
         }
 
-        return $country;
-    }
-
-    /**
-     * @param string $request
-     *
-     * @return ResponseInterface
-     *
-     * @throws GuzzleException
-     */
-    protected function httpRequest(string $request): ResponseInterface
-    {
-        return $this->httpClient->request('GET', 'https://lookup.binlist.net/' . $request);
+        return new BinData($bin, $data['country']['alpha2']);
     }
 }
